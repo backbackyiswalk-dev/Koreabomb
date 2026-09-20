@@ -1,0 +1,907 @@
+local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
+local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
+local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
+local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+
+local Options = Library.Options
+local Toggles = Library.Toggles
+
+local Window = Library:CreateWindow({
+	Title = "폭탄 돌리기 허브",
+	Footer = "v3.2.11 - UNSTUCK FIX",
+	Icon = 95816097006870,
+	NotifySide = "Right",
+	ShowCustomCursor = true,
+})
+
+local Tabs = {
+	Bomb = Window:AddTab("폭탄 오토", "bomb"),
+	Visuals = Window:AddTab("비주얼 (ESP & 이펙트)", "eye"),
+	Misc = Window:AddTab("기타 기능", "wrench"),
+	["UI Settings"] = Window:AddTab("UI 설정", "settings"),
+}
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+local KillEffects = {}
+
+local function createParticle(parent, texture, color, size, lifetime, speed, rate, spread)
+	local pe = Instance.new("ParticleEmitter")
+	pe.Texture = texture or "rbxassetid://243660364"
+	pe.Color = typeof(color) == "ColorSequence" and color or ColorSequence.new(color or Color3.fromRGB(255, 255, 255))
+	pe.Size = typeof(size) == "NumberSequence" and size or NumberSequence.new(size or 1)
+	pe.Lifetime = NumberRange.new(lifetime or 1)
+	pe.Speed = NumberRange.new(speed or 5)
+	pe.Rate = rate or 40
+	if spread then
+		pe.SpreadAngle = Vector2.new(spread, spread)
+	end
+	pe.Parent = parent
+	return pe
+end
+
+function KillEffects.Angel(char)
+	if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	local head = char:FindFirstChild("Head")
+	if head then
+		local halo = Instance.new("Part")
+		halo.Size = Vector3.new(2.5, 0.3, 2.5)
+		halo.CFrame = head.CFrame * CFrame.new(0, 1.5, 0)
+		halo.Material = Enum.Material.Neon
+		halo.Color = Color3.fromRGB(255, 230, 150)
+		halo.CanCollide = false
+		halo.Parent = char
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = head
+		weld.Part1 = halo
+		weld.Parent = halo
+		Debris:AddItem(halo, 3.5)
+	end
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.Material = Enum.Material.Neon
+			part.Color = Color3.fromRGB(255, 200, 230)
+			createParticle(part, "rbxassetid://258128463", Color3.fromRGB(255, 150, 200), 1.2, 1.5, 3, 25, 360)
+			TweenService:Create(part, TweenInfo.new(3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Transparency = 1 }):Play()
+		end
+	end
+	if hrp then
+		local bv = Instance.new("BodyVelocity")
+		bv.Velocity = Vector3.new(0, 22, 0)
+		bv.MaxForce = Vector3.new(0, 999999, 0)
+		bv.Parent = hrp
+		Debris:AddItem(bv, 3.5)
+	end
+end
+
+function KillEffects.Gold(char)
+	if not char then return end
+	local hl = Instance.new("Highlight")
+	hl.FillColor = Color3.fromRGB(255, 215, 0)
+	hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+	hl.FillTransparency = 0.1
+	hl.Parent = char
+	Debris:AddItem(hl, 3.5)
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.Material = Enum.Material.SmoothPlastic
+			part.Color = Color3.fromRGB(255, 215, 0)
+			part.Reflectance = 1.0
+			createParticle(part, "rbxassetid://284205403", Color3.fromRGB(255, 240, 150), 1, 1.2, 8, 30, 360)
+		end
+	end
+end
+
+function KillEffects.Thunder(char)
+	if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		local bolt = Instance.new("Part")
+		bolt.Size = Vector3.new(4, 400, 4)
+		bolt.CFrame = hrp.CFrame * CFrame.new(0, 200, 0)
+		bolt.Material = Enum.Material.Neon
+		bolt.Color = Color3.fromRGB(100, 240, 255)
+		bolt.Anchored = true
+		bolt.CanCollide = false
+		bolt.Parent = Workspace
+		TweenService:Create(bolt, TweenInfo.new(0.5), {Transparency = 1, Size = Vector3.new(0.1, 400, 0.1)}):Play()
+		Debris:AddItem(bolt, 0.5)
+	end
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.Material = Enum.Material.Neon
+			part.Color = Color3.fromRGB(50, 150, 255)
+			createParticle(part, "rbxassetid://258128463", Color3.fromRGB(200, 240, 255), 1.5, 1.5, 10, 35, 360)
+		end
+	end
+end
+
+function KillEffects.Freeze(char)
+	if not char then return end
+	local hl = Instance.new("Highlight")
+	hl.FillColor = Color3.fromRGB(100, 200, 255)
+	hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+	hl.FillTransparency = 0.2
+	hl.Parent = char
+	Debris:AddItem(hl, 3.5)
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.Material = Enum.Material.Glass
+			part.Color = Color3.fromRGB(150, 220, 255)
+			createParticle(part, "rbxassetid://258128463", Color3.fromRGB(200, 240, 255), 1, 1.2, 5, 20, 360)
+		end
+	end
+end
+
+function KillEffects.Galaxy(char)
+	if not char then return end
+	local hl = Instance.new("Highlight")
+	hl.FillColor = Color3.fromRGB(100, 0, 200)
+	hl.OutlineColor = Color3.fromRGB(255, 100, 255)
+	hl.FillTransparency = 0.1
+	hl.Parent = char
+	Debris:AddItem(hl, 3.5)
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.Material = Enum.Material.Neon
+			part.Color = Color3.fromRGB(80, 0, 150)
+			createParticle(part, "rbxassetid://258128463", Color3.fromRGB(200, 100, 255), 1.2, 1.5, 6, 25, 360)
+		end
+	end
+end
+
+function KillEffects.CuteBalloon(char)
+	if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		local bv = Instance.new("BodyVelocity")
+		bv.Velocity = Vector3.new(0, 25, 0)
+		bv.MaxForce = Vector3.new(0, 999999, 0)
+		bv.Parent = hrp
+		Debris:AddItem(bv, 3.0)
+	end
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.Material = Enum.Material.SmoothPlastic
+			part.Color = Color3.fromRGB(255, 105, 180)
+			createParticle(part, "rbxassetid://258128463", Color3.fromRGB(255, 182, 193), 1.5, 1.8, 6, 35, 360)
+		end
+	end
+end
+
+function KillEffects.PixelCute(char)
+	if not char then return end
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.Material = Enum.Material.Neon
+			part.Color = Color3.fromRGB(255, 100, 150)
+			createParticle(part, "rbxassetid://258128463", Color3.fromRGB(255, 200, 220), 1, 1, 6, 20, 360)
+		end
+	end
+end
+
+function KillEffects.CherryBlossom(char)
+	if not char then return end
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.Material = Enum.Material.SmoothPlastic
+			part.Color = Color3.fromRGB(255, 180, 200)
+			createParticle(part, "rbxassetid://258128463", Color3.fromRGB(255, 220, 230), 1, 1.5, 4, 25, 360)
+		end
+	end
+end
+
+function KillEffects.Laser(char) KillEffects.Thunder(char) end
+
+function KillEffects.Slime(char)
+	if not char then return end
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.Material = Enum.Material.SmoothPlastic
+			part.Color = Color3.fromRGB(50, 255, 50)
+			createParticle(part, "rbxassetid://258128463", Color3.fromRGB(100, 255, 100), 1.2, 1.5, 5, 25, 360)
+		end
+	end
+end
+
+function KillEffects.DarkMatter(char)
+	if not char then return end
+	local hl = Instance.new("Highlight")
+	hl.FillColor = Color3.fromRGB(10, 10, 10)
+	hl.OutlineColor = Color3.fromRGB(150, 0, 255)
+	hl.Parent = char
+	Debris:AddItem(hl, 3.5)
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.Material = Enum.Material.Neon
+			part.Color = Color3.fromRGB(20, 20, 20)
+			createParticle(part, "rbxassetid://258128463", Color3.fromRGB(100, 0, 150), 1.2, 1.5, 5, 25, 360)
+		end
+	end
+end
+
+function KillEffects.BlackHole(char) KillEffects.DarkMatter(char) end
+function KillEffects.Heart(char) KillEffects.CuteBalloon(char) end
+function KillEffects.Sparkle(char) KillEffects.Gold(char) end
+function KillEffects.SuperNova(char) KillEffects.Thunder(char) end
+function KillEffects.VoidSlash(char) KillEffects.DarkMatter(char) end
+
+function KillEffects.InfernoHell(char)
+	if not char then return end
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.Material = Enum.Material.Neon
+			part.Color = Color3.fromRGB(255, 80, 0)
+			createParticle(part, "rbxassetid://258128463", Color3.fromRGB(255, 150, 50), 1.3, 1.5, 8, 30, 360)
+		end
+	end
+end
+
+function KillEffects.CyberMatrix(char)
+	if not char then return end
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.Material = Enum.Material.Neon
+			part.Color = Color3.fromRGB(0, 255, 100)
+			createParticle(part, "rbxassetid://258128463", Color3.fromRGB(100, 255, 200), 1.2, 1.5, 6, 25, 360)
+		end
+	end
+end
+
+function KillEffects.LightningStorm(char) KillEffects.Thunder(char) end
+
+local function applyKillEffect(effectName, character)
+	local fx = KillEffects[effectName]
+	if fx then
+		pcall(function() fx(character) end)
+	else
+		KillEffects.Gold(character)
+	end
+end
+
+local function setupCharacterDiedEffect(player, character)
+	local hum = character:WaitForChild("Humanoid", 5)
+	if hum then
+		hum.Died:Connect(function()
+			if Toggles.EnableKillEffect and Toggles.EnableKillEffect.Value then
+				local selectedEffect = Options.KillEffectSelect and Options.KillEffectSelect.Value or "Angel"
+				applyKillEffect(selectedEffect, character)
+			end
+
+			if player == LocalPlayer then
+				task.defer(function()
+					if character and character:FindFirstChildOfClass("Humanoid") then
+						character:FindFirstChildOfClass("Humanoid").Health = 0
+					end
+				end)
+			end
+		end)
+	end
+end
+
+local function setupPlayerEffect(player)
+	if player.Character then
+		setupCharacterDiedEffect(player, player.Character)
+	end
+	player.CharacterAdded:Connect(function(char)
+		setupCharacterDiedEffect(player, char)
+	end)
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+	setupPlayerEffect(player)
+end
+Players.PlayerAdded:Connect(setupPlayerEffect)
+
+local BombGroup = Tabs.Bomb:AddLeftGroupbox("폭탄 자동화 설정")
+
+BombGroup:AddToggle("AutoPass", { Text = "자동 패스 (Auto Pass)", Default = false })
+BombGroup:AddToggle("AutoFlee", { Text = "자동 도망 (Auto Flee)", Default = false })
+BombGroup:AddSlider("BombPassSpeed", { Text = "폭탄 들었을 때 속도", Default = 17, Min = 16, Max = 30, Rounding = 0 })
+
+local BombList = {
+	"SoccerBallBomb", "TrafficConeBomb", "SquishyBomb", "PopCatBomb",
+	"DogeBomb", "BigHeadBomb", "BasicBomb", "PotatoBomb",
+	"MoonBomb", "SubspaceTripmineBomb", "StarBomb"
+}
+
+local cachedBaseplate = nil
+local playerDataStore = {}
+
+local function getBaseplateInfo()
+	if cachedBaseplate then return cachedBaseplate end
+	local platform = Workspace:FindFirstChild("Platform")
+	if platform then
+		local baseplate = platform:FindFirstChild("Baseplate")
+		if baseplate and baseplate:IsA("BasePart") then
+			local pos, size = baseplate.Position, baseplate.Size
+			cachedBaseplate = {
+				Part = baseplate, Center = pos, Size = size,
+				MinX = pos.X - (size.X / 2), MaxX = pos.X + (size.X / 2),
+				MinZ = pos.Z - (size.Z / 2), MaxZ = pos.Z + (size.Z / 2),
+				MinY = pos.Y + (size.Y / 2),
+			}
+			return cachedBaseplate
+		end
+	end
+	local baseplate = Workspace:FindFirstChild("Baseplate")
+	if baseplate and baseplate:IsA("BasePart") then
+		local pos, size = baseplate.Position, baseplate.Size
+		cachedBaseplate = {
+			Part = baseplate, Center = pos, Size = size,
+			MinX = pos.X - (size.X / 2), MaxX = pos.X + (size.X / 2),
+			MinZ = pos.Z - (size.Z / 2), MaxZ = pos.Z + (size.Z / 2),
+			MinY = pos.Y + (size.Y / 2),
+		}
+		return cachedBaseplate
+	end
+	return nil
+end
+
+local function isPositionOnBaseplate(targetPos, baseplateInfo)
+	if not baseplateInfo then return true end
+	return targetPos.X >= baseplateInfo.MinX and targetPos.X <= baseplateInfo.MaxX
+		and targetPos.Z >= baseplateInfo.MinZ and targetPos.Z <= baseplateInfo.MaxZ
+		and targetPos.Y >= (baseplateInfo.MinY - 15)
+end
+
+local function clampPositionToCenter(targetPos, baseplateInfo)
+	local safeY = targetPos.Y
+	if baseplateInfo then
+		safeY = math.max(targetPos.Y, baseplateInfo.MinY + 3.0)
+		local limitX = baseplateInfo.Size.X * 0.4
+		local limitZ = baseplateInfo.Size.Z * 0.4
+		local clampedX = math.clamp(targetPos.X, baseplateInfo.Center.X - limitX, baseplateInfo.Center.X + limitX)
+		local clampedZ = math.clamp(targetPos.Z, baseplateInfo.Center.Z - limitZ, baseplateInfo.Center.Z + limitZ)
+		return Vector3.new(clampedX, safeY, clampedZ)
+	end
+	return Vector3.new(targetPos.X, safeY, targetPos.Z)
+end
+
+local function analyzePlayerMovement(dt)
+	local safeDt = math.max(dt, 0.001)
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			local hrp = player.Character.HumanoidRootPart
+			local userId = player.UserId
+			if not playerDataStore[userId] then
+				playerDataStore[userId] = { lastPos = hrp.Position, velocity = Vector3.new(0, 0, 0), speed = 0 }
+			end
+			local data = playerDataStore[userId]
+			local currentPos = hrp.Position
+			local currentVelocity = (currentPos - data.lastPos) / safeDt
+			data.velocity = data.velocity:Lerp(currentVelocity, 0.7)
+			data.speed = data.velocity.Magnitude
+			data.lastPos = currentPos
+		end
+	end
+end
+
+local function hasAnyBomb(parent)
+	if not parent then return nil end
+	for _, bombName in ipairs(BombList) do
+		local found = parent:FindFirstChild(bombName)
+		if found then return found end
+	end
+	return nil
+end
+
+local function isInvisiblePart(item)
+	local current = item
+	while current and current ~= Workspace do
+		if current.Name == "Invis" then return true end
+		current = current.Parent
+	end
+	return false
+end
+
+local function getBombCarrier()
+	for _, player in ipairs(Players:GetPlayers()) do
+		local char = player.Character
+		if char and not isInvisiblePart(char) then
+			local inChar = hasAnyBomb(char)
+			local inBackpack = player:FindFirstChild("Backpack") and hasAnyBomb(player.Backpack)
+			if inChar or inBackpack then return player end
+		end
+	end
+	return nil
+end
+
+local lockedTarget = nil
+
+local function getOptimalNearestTarget(baseplateInfo)
+	local myChar = LocalPlayer.Character
+	if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return nil, math.huge end
+	local myPos = myChar.HumanoidRootPart.Position
+
+	if lockedTarget and lockedTarget.Parent and lockedTarget.Character and lockedTarget.Character:FindFirstChild("HumanoidRootPart") and lockedTarget.Character:FindFirstChildOfClass("Humanoid") then
+		local lHum = lockedTarget.Character:FindFirstChildOfClass("Humanoid")
+		local lHrp = lockedTarget.Character.HumanoidRootPart
+		if lHum.Health > 0 and isPositionOnBaseplate(lHrp.Position, baseplateInfo) then
+			local dist = (lHrp.Position - myPos).Magnitude
+			if dist < 180 then 
+				return lockedTarget, dist
+			end
+		end
+	end
+
+	local closest, minDist = nil, math.huge
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			local char = player.Character
+			if char and not isInvisiblePart(char) and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") then
+				local hum = char:FindFirstChildOfClass("Humanoid")
+				local targetHrp = char.HumanoidRootPart
+				
+				if hum.Health > 0 and isPositionOnBaseplate(targetHrp.Position, baseplateInfo) then
+					local dist = (targetHrp.Position - myPos).Magnitude
+					if dist < minDist then
+						minDist = dist
+						closest = player
+					end
+				end
+			end
+		end
+	end
+
+	lockedTarget = closest
+	return closest, minDist
+end
+
+local lastStuckCheckPos = Vector3.new(0, 0, 0)
+local stuckTimer = 0
+local alternateOffsetAngle = 0
+
+local function getSmartEscapePosition(targetDesiredPos, myHrpPos, baseplateInfo, dt)
+	local distanceMoved = (myHrpPos - lastStuckCheckPos).Magnitude
+	
+	if distanceMoved < 0.6 then
+		stuckTimer = stuckTimer + dt
+	else
+		stuckTimer = 0
+		lastStuckCheckPos = myHrpPos
+	end
+
+	local finalPos = targetDesiredPos
+
+	if stuckTimer >= 1.5 then
+		alternateOffsetAngle = (alternateOffsetAngle == 90) and -90 or 90
+		local currentDir = (targetDesiredPos - myHrpPos)
+		if currentDir.Magnitude > 0 then
+			currentDir = currentDir.Unit
+		else
+			currentDir = Vector3.new(1, 0, 0)
+		end
+		
+		local rotCFrame = CFrame.Angles(0, math.rad(alternateOffsetAngle + math.random(-30, 30)), 0)
+		local newDir = rotCFrame * currentDir
+		finalPos = myHrpPos + (newDir * 40)
+		
+		stuckTimer = 0
+		lastStuckCheckPos = myHrpPos
+	end
+
+	return clampPositionToCenter(finalPos, baseplateInfo)
+end
+
+RunService.Heartbeat:Connect(function(dt)
+	local autoPass = Toggles.AutoPass and Toggles.AutoPass.Value
+	local autoFlee = Toggles.AutoFlee and Toggles.AutoFlee.Value
+
+	if not autoPass and not autoFlee then 
+		lockedTarget = nil
+		stuckTimer = 0
+		return 
+	end
+
+	local myChar = LocalPlayer.Character
+	if not myChar then return end
+	local myHrp = myChar:FindFirstChild("HumanoidRootPart")
+	local myHum = myChar:FindFirstChildOfClass("Humanoid")
+	if not myHrp or not myHum or myHum.Health <= 0 then return end
+
+	local baseplateInfo = getBaseplateInfo()
+	if not isPositionOnBaseplate(myHrp.Position, baseplateInfo) then return end
+
+	analyzePlayerMovement(dt)
+
+	local hasBombInChar = hasAnyBomb(myChar) ~= nil
+	local backpack = LocalPlayer:FindFirstChild("Backpack")
+	local hasBombInBackpack = backpack and hasAnyBomb(backpack) ~= nil
+	local hasBomb = hasBombInChar or hasBombInBackpack
+
+	local carrier = getBombCarrier()
+
+	if hasBomb then
+		myHum.WalkSpeed = Options.BombPassSpeed and Options.BombPassSpeed.Value or 17
+
+		if autoPass then
+			local target, minDist = getOptimalNearestTarget(baseplateInfo)
+			if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+				local targetHrp = target.Character.HumanoidRootPart
+				local targetData = playerDataStore[target.UserId]
+				
+				local leadTime = math.clamp(minDist / 50, 0.05, 0.4)
+				local predictedPos = targetHrp.Position
+				if targetData and targetData.speed > 0.5 then
+					predictedPos = targetHrp.Position + (Vector3.new(targetData.velocity.X, 0, targetData.velocity.Z) * leadTime)
+				end
+
+				local smartTargetPos = getSmartEscapePosition(predictedPos, myHrp.Position, baseplateInfo, dt)
+				myHum:MoveTo(smartTargetPos)
+
+				if firetouchinterest then
+					firetouchinterest(myHrp, targetHrp, 0)
+					firetouchinterest(myHrp, targetHrp, 1)
+				end
+
+				local currentPassRemote = game:GetService("ReplicatedStorage"):FindFirstChild("PassBomb")
+				if currentPassRemote and minDist < 40 then
+					currentPassRemote:FireServer(target)
+				end
+			end
+		end
+	else
+		lockedTarget = nil
+		myHum.WalkSpeed = 16
+
+		if autoFlee and carrier and carrier ~= LocalPlayer and carrier.Character then
+			local carrierHrp = carrier.Character:FindFirstChild("HumanoidRootPart")
+			if carrierHrp and not isInvisiblePart(carrier.Character) then
+				local diff = myHrp.Position - carrierHrp.Position
+				local fleeDir = Vector3.new(diff.X, 0, diff.Z)
+				if fleeDir.Magnitude < 1 then
+					fleeDir = Vector3.new(math.random(-1, 1), 0, math.random(-1, 1))
+				end
+				fleeDir = fleeDir.Unit
+
+				local escapeTarget = myHrp.Position + (fleeDir * 45)
+				
+				local smartEscapePos = getSmartEscapePosition(escapeTarget, myHrp.Position, baseplateInfo, dt)
+				myHum:MoveTo(smartEscapePos)
+			end
+		else
+			stuckTimer = 0
+			local idleWander = myHrp.Position + Vector3.new(math.sin(tick() * 2) * 15, 0, math.cos(tick() * 2) * 15)
+			local safeIdlePos = clampPositionToCenter(idleWander, baseplateInfo)
+			myHum:MoveTo(safeIdlePos)
+		end
+	end
+end)
+
+local VisualsLeft = Tabs.Visuals:AddLeftGroupbox("ESP 스위치")
+local VisualsRight = Tabs.Visuals:AddRightGroupbox("시야 및 이펙트 설정")
+
+VisualsLeft:AddToggle("EnableESP", { Text = "플레이어 ESP (닉네임/거리)", Default = false })
+VisualsLeft:AddToggle("EnableHighlight", { Text = "플레이어 외곽선 (Highlight)", Default = false })
+VisualsLeft:AddToggle("BombCarrierHighlight", { Text = "폭탄 가지고 잇는사람 강조 & 남은시간 ESP", Default = true })
+VisualsLeft:AddToggle("EnableTracers", { Text = "플레이어 궤적선 (Tracers)", Default = false })
+VisualsLeft:AddToggle("FOVToggle", { Text = "카메라 FOV 변경", Default = false })
+VisualsLeft:AddSlider("FOVSlider", { Text = "FOV 크기 설정", Default = 70, Min = 40, Max = 120, Rounding = 0 })
+VisualsLeft:AddToggle("FullbrightToggle", { Text = "풀브라이트", Default = false })
+
+VisualsRight:AddLabel("일반 플레이어 색상"):AddColorPicker("ESPColor", { Default = Color3.fromRGB(0, 255, 170) })
+VisualsRight:AddLabel("폭탄 소지자 색상"):AddColorPicker("BombColor", { Default = Color3.fromRGB(255, 30, 70) })
+VisualsRight:AddLabel("궤적선 Color"):AddColorPicker("TracerColor", { Default = Color3.fromRGB(255, 255, 255) })
+
+VisualsRight:AddToggle("EnableKillEffect", { Text = "커스텀 킬이펙트 활성화", Default = true })
+VisualsRight:AddDropdown("KillEffectSelect", {
+	Values = {
+		"Angel", "Gold", "Thunder", "Freeze", "Galaxy", 
+		"CuteBalloon", "PixelCute", "CherryBlossom", "Laser", 
+		"Slime", "DarkMatter", "BlackHole", "Heart", "Sparkle",
+		"SuperNova", "VoidSlash", "InfernoHell", "CyberMatrix", "LightningStorm"
+	},
+	Default = 6,
+	Multi = false,
+	Text = "선택된 스페셜 킬이펙트",
+})
+
+VisualsRight:AddButton({
+	Text = "킬이펙트 미리보기 (내 캐릭터)",
+	Func = function()
+		local selectedEffect = Options.KillEffectSelect.Value
+		if LocalPlayer.Character then
+			applyKillEffect(selectedEffect, LocalPlayer.Character)
+			Library:Notify({ Title = "킬이펙트 테스트", Description = selectedEffect .. " 이펙트 연출 발동!", Time = 3 })
+		end
+	end,
+})
+
+local function getBombTimeText(carrier)
+	if not carrier or not carrier.Character then return "" end
+	local bomb = hasAnyBomb(carrier.Character) or (carrier:FindFirstChild("Backpack") and hasAnyBomb(carrier.Backpack))
+	if not bomb then return "" end
+	local timerVal = bomb:FindFirstChild("Timer") or bomb:FindFirstChild("Time") or bomb:FindFirstChild("Fuse")
+	if timerVal and timerVal:IsA("ValueBase") then
+		return string.format("%.1f초", tonumber(timerVal.Value) or 0)
+	end
+	local attrTime = bomb:GetAttribute("Time") or bomb:GetAttribute("Timer")
+	if attrTime then
+		return string.format("%.1f초", tonumber(attrTime) or 0)
+	end
+	return "폭탄 보류 중"
+end
+
+local function createOrUpdateESP(player)
+	if player == LocalPlayer or not player.Character or isInvisiblePart(player.Character) then return end
+	local char = player.Character
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	local head = char:FindFirstChild("Head")
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	if not hrp or not head or not hum or hum.Health <= 0 then
+		if char:FindFirstChild("CustomESP_Gui") then char.CustomESP_Gui:Destroy() end
+		if char:FindFirstChild("CustomESP_Highlight") then char.CustomESP_Highlight:Destroy() end
+		return
+	end
+
+	local carrier = getBombCarrier()
+	local isCarrier = (player == carrier)
+	local isLocked = (player == lockedTarget)
+
+	local gui = char:FindFirstChild("CustomESP_Gui")
+	if Toggles.EnableESP.Value or (Toggles.BombCarrierHighlight.Value and isCarrier) or isLocked then
+		if not gui then
+			gui = Instance.new("BillboardGui")
+			gui.Name = "CustomESP_Gui"
+			gui.Adornee = head
+			gui.Size = UDim2.new(0, 200, 0, 50)
+			gui.StudsOffset = Vector3.new(0, 2.5, 0)
+			gui.AlwaysOnTop = true
+
+			local nameLabel = Instance.new("TextLabel")
+			nameLabel.Name = "NameLabel"
+			nameLabel.Size = UDim2.new(1, 0, 0, 20)
+			nameLabel.BackgroundTransparency = 1
+			nameLabel.Font = Enum.Font.GothamBold
+			nameLabel.TextSize = 14
+			nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+			nameLabel.TextStrokeTransparency = 0.2
+			nameLabel.Parent = gui
+
+			local infoLabel = Instance.new("TextLabel")
+			infoLabel.Name = "InfoLabel"
+			infoLabel.Size = UDim2.new(1, 0, 0, 18)
+			infoLabel.Position = UDim2.new(0, 0, 0, 20)
+			infoLabel.BackgroundTransparency = 1
+			infoLabel.Font = Enum.Font.Gotham
+			infoLabel.TextSize = 12
+			infoLabel.Parent = gui
+
+			gui.Parent = char
+		end
+
+		local distance = math.floor((LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and (LocalPlayer.Character.HumanoidRootPart.Position - hrp.Position).Magnitude) or 0)
+		local nameLabel = gui:FindFirstChild("NameLabel")
+		local infoLabel = gui:FindFirstChild("InfoLabel")
+
+		if isLocked then
+			nameLabel.Text = "타겟" .. player.DisplayName
+			nameLabel.TextColor3 = Color3.fromRGB(255, 150, 0)
+			infoLabel.Text = "거리: " .. distance .. "m | 추적 중"
+			infoLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+		elseif isCarrier then
+			local bombText = getBombTimeText(carrier)
+			nameLabel.Text = "🥺" .. player.DisplayName .. " (@" .. player.Name .. ")"
+			nameLabel.TextColor3 = Options.BombColor.Value
+			infoLabel.Text = "[ 폭탄 들고잇는사람 ] - " .. bombText .. " | " .. distance .. "m"
+			infoLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+		else
+			nameLabel.Text = player.DisplayName
+			nameLabel.TextColor3 = Options.ESPColor.Value
+			infoLabel.Text = distance .. "m | 체력: " .. math.floor(hum.Health)
+			infoLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+		end
+	else
+		if gui then gui:Destroy() end
+	end
+
+	local highlight = char:FindFirstChild("CustomESP_Highlight")
+	local shouldHighlight = Toggles.EnableHighlight.Value or (Toggles.BombCarrierHighlight.Value and isCarrier) or isLocked
+
+	if shouldHighlight then
+		if not highlight then
+			highlight = Instance.new("Highlight")
+			highlight.Name = "CustomESP_Highlight"
+			highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+			highlight.FillTransparency = 0.5
+			highlight.OutlineTransparency = 0
+			highlight.Parent = char
+		end
+
+		if isLocked then
+			highlight.FillColor = Color3.fromRGB(255, 150, 0)
+			highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+		elseif isCarrier then
+			highlight.FillColor = Options.BombColor.Value
+			highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+		else
+			highlight.FillColor = Options.ESPColor.Value
+			highlight.OutlineColor = Options.ESPColor.Value
+		end
+	else
+		if highlight then highlight:Destroy() end
+	end
+end
+
+RunService.RenderStepped:Connect(function()
+	for _, player in ipairs(Players:GetPlayers()) do
+		createOrUpdateESP(player)
+	end
+
+	if Toggles.FOVToggle and Toggles.FOVToggle.Value then
+		Camera.FieldOfView = Options.FOVSlider.Value
+	end
+
+	if Toggles.FullbrightToggle and Toggles.FullbrightToggle.Value then
+		Lighting.Brightness = 2
+		Lighting.ClockTime = 14
+		Lighting.FogEnd = 100000
+		Lighting.GlobalShadows = false
+		Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+	end
+end)
+
+local MiscGroup1 = Tabs.Misc:AddLeftGroupbox("플레이어")
+MiscGroup1:AddToggle("NoclipToggle", { Text = "벽 통과 (Noclip)", Default = false })
+MiscGroup1:AddToggle("SpeedBoostToggle", { Text = "이동속도/점프력 부스트", Default = false })
+MiscGroup1:AddSlider("WalkSpeedSlider", { Text = "이동 속도 (WalkSpeed)", Default = 16, Min = 16, Max = 120, Rounding = 0 })
+MiscGroup1:AddSlider("JumpPowerSlider", { Text = "점프력 (JumpPower)", Default = 50, Min = 50, Max = 200, Rounding = 0 })
+
+RunService.Stepped:Connect(function()
+	if Toggles.NoclipToggle and Toggles.NoclipToggle.Value then
+		if LocalPlayer.Character then
+			for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+				if part:IsA("BasePart") and part.CanCollide then
+					part.CanCollide = false
+				end
+			end
+		end
+	end
+
+	if Toggles.SpeedBoostToggle and Toggles.SpeedBoostToggle.Value then
+		if LocalPlayer.Character then
+			local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+			if hum then
+				hum.WalkSpeed = Options.WalkSpeedSlider.Value
+				hum.UseJumpPower = true
+				hum.JumpPower = Options.JumpPowerSlider.Value
+			end
+		end
+	end
+end)
+
+local MiscGroup2 = Tabs.Misc:AddRightGroupbox("유틸리티")
+MiscGroup2:AddButton({
+	Text = "캐릭터 재설정 (Reset Character)",
+	Func = function()
+		if LocalPlayer.Character then
+			local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+			if hum then hum.Health = 0 end
+		end
+	end,
+})
+
+MiscGroup2:AddButton({
+	Text = "서버 홉 (Server Hop)",
+	Func = function()
+		local PlaceID = game.PlaceId
+		local AllIDs = {}
+		local foundAnything = ""
+		local actualHour = os.date("!*t").hour
+		
+		pcall(function()
+			AllIDs = HttpService:JSONDecode(readfile("NotSameServers.json"))
+		end)
+		if type(AllIDs) ~= "table" then
+			AllIDs = {}
+			table.insert(AllIDs, actualHour)
+			pcall(function()
+				writefile("NotSameServers.json", HttpService:JSONEncode(AllIDs))
+			end)
+		end
+
+		local function TPReturner()
+			local Site
+			if foundAnything == "" then
+				Site = HttpService:JSONDecode(game:HttpGet('https://games.roblox.com/v1/games/' .. PlaceID .. '/servers/Public?sortOrder=Asc&limit=100'))
+			else
+				Site = HttpService:JSONDecode(game:HttpGet('https://games.roblox.com/v1/games/' .. PlaceID .. '/servers/Public?sortOrder=Asc&limit=100&cursor=' .. foundAnything))
+			end
+			if Site.nextPageCursor and Site.nextPageCursor ~= "null" and Site.nextPageCursor ~= nil then
+				foundAnything = Site.nextPageCursor
+			end
+			local num = 0
+			for _, v in pairs(Site.data) do
+				local Possible = true
+				local ID = tostring(v.id)
+				if tonumber(v.maxPlayers) > tonumber(v.playing) then
+					for _, Existing in pairs(AllIDs) do
+						if num ~= 0 then
+							if ID == tostring(Existing) then
+								Possible = false
+							end
+						else
+							if tonumber(actualHour) ~= tonumber(Existing) then
+								pcall(function()
+									delfile("NotSameServers.json")
+									AllIDs = {}
+									table.insert(AllIDs, actualHour)
+								end)
+							end
+						end
+						num = num + 1
+					end
+					if Possible == true then
+						table.insert(AllIDs, ID)
+						pcall(function()
+							writefile("NotSameServers.json", HttpService:JSONEncode(AllIDs))
+							TeleportService:TeleportToPlaceInstance(PlaceID, ID, LocalPlayer)
+						end)
+						task.wait(4)
+					end
+				end
+			end
+		end
+
+		task.spawn(function()
+			pcall(function()
+				TPReturner()
+				if foundAnything ~= "" then
+					TPReturner()
+				end
+			end)
+		end)
+		Library:Notify({ Title = "서버 홉", Description = "다른 서버로 이동 중...", Time = 3 })
+	end,
+})
+
+MiscGroup2:AddToggle("AntiFlingToggle", { Text = "안티 플링 (Anti-Fling)", Default = true })
+
+RunService.Stepped:Connect(function()
+	if Toggles.AntiFlingToggle and Toggles.AntiFlingToggle.Value then
+		for _, CoPlayer in pairs(Players:GetChildren()) do
+			if CoPlayer ~= LocalPlayer and CoPlayer.Character and not isInvisiblePart(CoPlayer.Character) then
+				for _, Part in pairs(CoPlayer.Character:GetChildren()) do
+					if Part.Name == "HumanoidRootPart" then Part.CanCollide = false end
+				end
+			end
+		end
+	end
+end)
+
+MiscGroup2:AddButton({
+	Text = "서버 재접속 (Rejoin)",
+	Func = function()
+		TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+	end,
+})
+
+MiscGroup2:AddButton({
+	Text = "게임 즉시 종료",
+	DoubleClick = true,
+	Func = function() game:Shutdown() end,
+})
+
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
+SaveManager:SetFolder("BombScriptHub")
+SaveManager:SetFolder("BombScriptHub/bomb-game")
+SaveManager:BuildConfigSection(Tabs["UI Settings"])
+ThemeManager:ApplyToTab(Tabs["UI Settings"])
+SaveManager:LoadAutoloadConfig()
+
