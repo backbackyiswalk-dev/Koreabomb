@@ -8,7 +8,7 @@ local Toggles = Library.Toggles
 
 local Window = Library:CreateWindow({
 	Title = "폭탄 돌리기 허브",
-	Footer = "v3.2.20 - TWEEN & WALK MODES",
+	Footer = "by nyano",
 	Icon = 95816097006870,
 	NotifySide = "Right",
 	ShowCustomCursor = true,
@@ -39,7 +39,7 @@ local BombGroup = Tabs.Bomb:AddLeftGroupbox("폭탄 자동화 설정")
 
 BombGroup:AddToggle("AutoPass", { Text = "자동 패스 (Auto Pass)", Default = false })
 BombGroup:AddToggle("AutoFlee", { Text = "자동 도망 (Auto Flee)", Default = false })
-BombGroup:AddDropdown("MoveMode", { Text = "이동 방식 선택", Values = { "Walk (사람처럼 걷기)", "Tween (순간이동/텔레포)", }, Default = 1 })
+BombGroup:AddDropdown("MoveMode", { Text = "이동 방식 선택", Values = { "Walk", "Tween", }, Default = 1 })
 BombGroup:AddSlider("BombPassSpeed", { Text = "폭탄 들었을 때 속도 (Walk용)", Default = 17, Min = 16, Max = 30, Rounding = 0 })
 
 local BombList = {
@@ -386,7 +386,7 @@ VisualsLeft:AddToggle("EnableHighlight", { Text = "플레이어 외곽선 (Highl
 VisualsLeft:AddToggle("BombCarrierHighlight", { Text = "폭탄 소지자 강조 & 남은시간 ESP", Default = true })
 VisualsLeft:AddToggle("FOVToggle", { Text = "카메라 FOV 변경", Default = false })
 VisualsLeft:AddSlider("FOVSlider", { Text = "FOV 크기 설정", Default = 70, Min = 40, Max = 120, Rounding = 0 })
-VisualsLeft:AddToggle("FullbrightToggle", { Text = "풀브라이트 (어둠 제거)", Default = false })
+VisualsLeft:AddToggle("FullbrightToggle", { Text = "풀브라이트", Default = false })
 
 VisualsRight:AddLabel("일반 플레이어 색상"):AddColorPicker("ESPColor", { Default = Color3.fromRGB(0, 255, 170) })
 VisualsRight:AddLabel("폭탄 소지자 색상"):AddColorPicker("BombColor", { Default = Color3.fromRGB(255, 30, 70) })
@@ -459,13 +459,13 @@ local function createOrUpdateESP(player)
 		local infoLabel = gui:FindFirstChild("InfoLabel")
 
 		if isLocked then
-			nameLabel.Text = "🎯 [추적 중] " .. player.DisplayName
+			nameLabel.Text = "[추적 중] " .. player.DisplayName
 			nameLabel.TextColor3 = Color3.fromRGB(255, 150, 0)
 			infoLabel.Text = "거리: " .. distance .. "m"
 			infoLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
 		elseif isCarrier then
 			local bombText = getBombTimeText(carrier)
-			nameLabel.Text = "💣 " .. player.DisplayName .. " (@" .. player.Name .. ")"
+			nameLabel.Text = "🥀" .. player.DisplayName .. " (@" .. player.Name .. ")"
 			nameLabel.TextColor3 = Options.BombColor.Value
 			infoLabel.Text = "[ 폭탄 소지자 ] - " .. bombText .. " | " .. distance .. "m"
 			infoLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
@@ -554,7 +554,7 @@ RunService.Stepped:Connect(function()
 	end
 end)
 
-local MiscGroup2 = Tabs.Misc:AddRightGroupbox("유틸리티 및 안티 기능")
+local MiscGroup2 = Tabs.Misc:AddRightGroupbox("유틸리티")
 MiscGroup2:AddButton({
 	Text = "캐릭터 재설정 (Reset Character)",
 	Func = function()
